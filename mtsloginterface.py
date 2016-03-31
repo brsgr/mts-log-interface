@@ -34,7 +34,7 @@ class MTSLogConnection(object):  # Class for establishing connection to log serv
         for file in logfilelist:  # loop through list of all log files to filter out the uneeded ones
             log_file_type = re.search(r'\w*\.', file)  # regex to check log file type
             try:
-                if log_file_type.group()[:-1] == self.type and str(self.datestart.year) in file:  # Filters by log_type
+                if log_file_type.group()[:-1] in self.type and str(self.datestart.year) in file:  # Filters by log_type
                     b = re.search(r'\d\d\d\d\d\d\d\d\d\d\d\d\d\d-', file).group()[:-1]  # regex to find log file start date
                     c = re.search(r'\d\d\d\d\d\d\d\d\d\d\d\d\d\d\.', file).group()[:-1]  # regex to find log file end date
 
@@ -68,9 +68,6 @@ class MTSLog(object):  # Class for parsed log outputs list; differs in that it i
         self.logs = logs
         self.columns = columns
 
-    def xls_output(self, file):  # Place holder for export to excel method
-        pass
-
     def csv_export(self, file):  # export to csv method
         with open(file, 'w', newline='') as myfile:
             wr = csv.writer(myfile)
@@ -80,6 +77,7 @@ class MTSLog(object):  # Class for parsed log outputs list; differs in that it i
 
 def DateStringContain(date, string):
     # Determines if a string contains the month and day elements of a datetime This is used for filtering directories
+    # 'date' is in the datetime format and string is a .... string
     return str(date.month) in string and str(date.day) in string
 
 # The next series of functions utilize the MTSLogConnection class to
@@ -175,6 +173,12 @@ def rfid_tag_locations(path, archive, start, end, filters=['']):
     return MTSLog(blink_list, column_names)
 
 
+def in_lane_messages(path, archive, start, end, filters=['']):
+    # Creates a list of all scoring (RTG and FEL) over time range. Note that the CHEids are stored as sourceIDs
+    # from resource manager. You'll need to set up a dictionary to display them if they differ
+    logitemlist = MTSLogConnection(path, archive, 'TTSGateSvcLog', start, end).download_logs(filters)
+    scorelist = []
+    return MTSLog(logitemlist, '')
 
 
 
@@ -182,12 +186,13 @@ if __name__ == '__main__':
     path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
-    start = datetime.datetime(2016, 3, 30, 7, 6, 1)
-    end = datetime.datetime(2016, 3, 30, 7, 9, 1)
+    start = datetime.datetime(2016, 3, 30, 6, 55, 1)
+    end = datetime.datetime(2016, 3, 30, 7, 0, 1)
 
-    a = gps_location_events(path, archive, start, end, filters=['T6349'])
-    csvfile = 'helloworld.csv'
-    a.csv_export(csvfile)
+    a = in_lane_messages(path, archive, start, end)
+    for i in a.logs:
+        if 'equipmentinLane' in i:
+            print(i)
 
 
 
