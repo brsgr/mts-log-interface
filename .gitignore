@@ -1,2 +1,4 @@
 *.[log]
 experimenting/
+.idea/
+_pycache_/
