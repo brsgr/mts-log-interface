@@ -4,6 +4,8 @@ from os import listdir
 import os.path
 import datetime
 import csv
+import pandas as pd
+import numpy as np
 
 
 class MTSLogConnection(object):  # Class for establishing connection to log server
@@ -64,9 +66,10 @@ class MTSLogConnection(object):  # Class for establishing connection to log serv
 
 
 class MTSLog(object):  # Class for parsed log outputs list; differs in that it includes column names attribute
-    def __init__(self, logs, columns):
+    def __init__(self, logs, columns, file_names):
         self.logs = logs
         self.columns = columns
+        self.file_names = file_names
 
     def csv_export(self, file):  # export to csv method
         with open(file, 'w', newline='') as myfile:
@@ -88,6 +91,7 @@ def whereport_pings(path, archive, start, end, filters=['']):
     # List format is [datetime, tagid, whereport_name, whereport_id, ZoneName, [X_pos, YPos)
 
     logitemlist = MTSLogConnection(path, archive, 'FrontLoaderSvcLog', start, end).download_logs(filters)
+    file_names = MTSLogConnection(path, archive, 'FrontLoaderSvcLog', start, end).return_logs()
     # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
     # argument
     pings = []  # Initialize
@@ -115,12 +119,14 @@ def whereport_pings(path, archive, start, end, filters=['']):
                 pings.append([datetime.datetime.strptime(matchA.group(), '%m/%d/%Y %I:%M:%S %p'), matchB.group(),
                              C, matchD.group()[12:], matchE.group()[9:-1], positionx, positiony])
     column_names = ['Time', 'TagID', 'ResourceID', 'WhereportID', 'ZoneName', 'XPos', 'YPos']
-    return MTSLog(pings, column_names)
+    return pd.DataFrame(pings, columns=column_names)
+
 
 def gps_location_events(path, archive, start, end, filters=['']):
     # Create a list of all location events at path/archive between the times 'start' and 'end'
     # output is in list[list] with format [datetime received, datetime sent, latency, CHE_id, [X_pos, Y_pos, compass]]
     logitemlist = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).download_logs(filters)
+    file_names = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).return_logs()
     # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
     # argument
     locationlist = []
@@ -139,18 +145,19 @@ def gps_location_events(path, archive, start, end, filters=['']):
             locationlist.append([A_Time, B_Time, latency, matchC.group()[1:-1], float(matchD.group()[3:]),
                                  float(matchE.group()[2:]), int(matchF.group()[:-2])])
     column_names = ['Time Received', 'Time Sent', 'Latency', 'CHE ID', 'Xpos', 'Ypos', 'Compass']
-    return MTSLog(locationlist, column_names)
+    return pd.DataFrame(locationlist, columns=column_names)
 
 
 def rfid_tag_locations(path, archive, start, end, filters=['']):
     # Creates a list of all RFID tag blinks. This includes DRAYMAN, FEL, RTGS, and UTR. Don't confuse this with location
     # events which only includes GPS positions, not RFID positions
     logitemlist = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).download_logs(filters)
+    file_names = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).return_logs()
     # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
     # argument
     blink_list = []  # Initialize list of RFID blinks
     for i in logitemlist:
-        if 'Algorithm=3' in i:
+        if any(j in i for j in ['Algorithm=3', 'Algorithm=2', 'Algorithm=1']):
             matchA = re.search(r'\w*/\w*/\w\w\w\w \w\w:\w\w:\w\w \w\w', i)  # Regex to find time received
             A_Time = datetime.datetime.strptime(matchA.group(), '%m/%d/%Y %I:%M:%S %p')
             matchB = re.search(r'TagID=\d*', i)  # regex to find tag #
@@ -170,15 +177,7 @@ def rfid_tag_locations(path, archive, start, end, filters=['']):
             blink_list.append([A_Time, matchB.group()[6:], matchC.group()[13:-1], matchD.group()[11:-1]
                                , matchE.group()[9:-1], positionx, positiony])
     column_names = ['Time', 'TagID', 'Tag_Type', 'ResourceID', 'ZoneName', 'Xpos', 'Ypos']
-    return MTSLog(blink_list, column_names)
-
-
-def in_lane_messages(path, archive, start, end, filters=['']):
-    # Creates a list of all scoring (RTG and FEL) over time range. Note that the CHEids are stored as sourceIDs
-    # from resource manager. You'll need to set up a dictionary to display them if they differ
-    logitemlist = MTSLogConnection(path, archive, 'TTSGateSvcLog', start, end).download_logs(filters)
-    scorelist = []
-    return MTSLog(logitemlist, '')
+    return pd.DataFrame(blink_list, columns=column_names)
 
 
 
@@ -186,13 +185,15 @@ if __name__ == '__main__':
     path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
-    start = datetime.datetime(2016, 3, 30, 6, 55, 1)
-    end = datetime.datetime(2016, 3, 30, 7, 0, 1)
+    start = datetime.datetime(2016, 12, 28, 21, 55, 1)
+    end = datetime.datetime(2016, 12, 28, 23, 0, 1)
 
-    a = in_lane_messages(path, archive, start, end)
-    for i in a.logs:
-        if 'equipmentinLane' in i:
-            print(i)
+    pd.set_option('max_columns', 50)
+    desired_width = 320
+    pd.set_option('display.width', desired_width)
+
+    a = gps_location_events(path, archive, start, end, filters=['R8091'])
+    print(a)
 
 
 
