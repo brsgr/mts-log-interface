@@ -6,7 +6,7 @@ import datetime
 import csv
 import pandas as pd
 import numpy as np
-
+import pickle
 
 class MTSLogConnection(object):  # Class for establishing connection to log server
     def __init__(self, path, archive_path, type, datestart, dateend):
@@ -142,8 +142,11 @@ def gps_location_events(path, archive, start, end, filters=['']):
             matchE = re.search(r'0~\d*\.\d*', i)  # regex for Y_pos
             matchF = re.search(r'\d*~N', i)  # regex for head direction
 
-            locationlist.append([A_Time, B_Time, latency, matchC.group()[1:-1], float(matchD.group()[3:]),
-                                 float(matchE.group()[2:]), int(matchF.group()[:-2])])
+            try:
+                locationlist.append([A_Time, B_Time, latency, matchC.group()[1:-1], float(matchD.group()[3:]),
+                                     float(matchE.group()[2:]), int(matchF.group()[:-2])])
+            except:
+                pass
     column_names = ['Time Received', 'Time Sent', 'Latency', 'CHE ID', 'Xpos', 'Ypos', 'Compass']
     return pd.DataFrame(locationlist, columns=column_names)
 
@@ -185,14 +188,14 @@ if __name__ == '__main__':
     path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
-    start = datetime.datetime(2016, 12, 28, 21, 55, 1)
-    end = datetime.datetime(2016, 12, 28, 23, 0, 1)
+    start = datetime.datetime(2017, 1, 10, 8, 14, 59)
+    end = datetime.datetime(2017, 1, 10, 8, 20, 59)
 
     pd.set_option('max_columns', 50)
     desired_width = 320
     pd.set_option('display.width', desired_width)
 
-    a = gps_location_events(path, archive, start, end, filters=['R8091'])
+    a = whereport_pings(path, archive, start, end, filters=[''])
     print(a)
 
 

@@ -2,3 +2,5 @@
 experimenting/
 .idea/
 __pycache__/
+mts.py
+*.p
