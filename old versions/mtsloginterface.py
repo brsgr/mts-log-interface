@@ -6,8 +6,13 @@ import datetime
 import csv
 import pandas as pd
 import numpy as np
+import pickle
 
-from whereport_functions import *
+
+def print_full(x):
+    pd.set_option('display.max_rows', len(x))
+    print(x)
+    pd.reset_option('display.max_rows')
 
 
 class MTSLogConnection(object):  # Class for establishing connection to log server
@@ -88,31 +93,40 @@ def DateStringContain(date, string):
 # The next series of functions utilize the MTSLogConnection class to
 # quickly parse the logs for commonly sought out data
 
-def whereport_pings(path, archive, start, end):
-    # Create df of all whereport pings for a given start and end time
+def whereport_pings(path, archive, start, end, filters=['']):
+    # Create MTSLog of all whereport pings for a given start and end time
+    # List format is [datetime, tagid, whereport_name, whereport_id, ZoneName, [X_pos, YPos)
 
+    logitemlist = MTSLogConnection(path, archive, 'FrontLoaderSvcLog', start, end).download_logs(filters)
     file_names = MTSLogConnection(path, archive, 'FrontLoaderSvcLog', start, end).return_logs()
-    # Establish MTS Connection to receive log list
+    # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
     # argument
-    return_df = pd.DataFrame()
-    for log_file in file_names:
-        df = pd.read_csv(log_file, compression='gzip', encoding="Latin-1", header=None)
-        df.columns = ['date', 'unixtime', 'blink', 'tag', 'info']
-
-        df['tag_no'] = df['info'].apply(return_tag_no)
-        df['tag_id'] = df['info'].apply(return_tag_id)
-        df['wp_id'] = df['info'].apply(return_wp_id)
-        df['zone_name'] = df['info'].apply(return_zone_name)
-        df['x_pos'] = df['info'].apply(return_x_coord)
-        df['y_pos'] = df['info'].apply(return_y_coord)
-
-        df = df[df['wp_id'].notnull()]
-        df.drop('info', 1, inplace=True)
-        df.reset_index(drop=True, inplace=True)
-
-        return_df = return_df.append(df)
-
-    return return_df
+    pings = []  # Initialize
+    for i in logitemlist:
+        if re.search(r'WherePortID=\w\w\w\w', i):  # regex conditional searches for a blink with a whereport ID in the log
+            matchA = re.search(r'\w*/\w*/\w\w\w\w \w\w:\w\w:\w\w \w\w', i)  # Regex to find datetime
+            matchB = re.search(r'3\d\d\d\d\d\d\d', i)  # regex to find tag #
+            matchC = re.search(r'ResourceID=.+\|', i)  # regex to find tag id
+            matchD = re.search(r'WherePortID=\d\d\d\d', i)  # regex to find whereport id
+            matchE = re.search(r'ZoneName.+?\|', i)  # Regex to find Zone name
+            matchF = re.search(r'X.+?\|', i)  # regex to find X coord
+            matchG = re.search(r'Y.+?\|', i)  # regex to find Y coord
+            # Use matchF and matchG to create integer coordinates
+            try:  # Avoid Value error if regex does not return an integer
+                positionx = int(matchF.group()[2:-1])
+                positiony = int(matchG.group()[2:-1])
+            except ValueError:
+                positionx = matchF.group()[2:-1]
+                positiony = matchG.group()[2:-1]
+            try:  # Avoid Attribute error if no ResourceID is found
+                C = matchC.group()[11:-1]
+            except AttributeError:
+                C = 'DF'
+            if matchA and matchB and matchD:  # Create list of regex matches, this is the functions result
+                pings.append([datetime.datetime.strptime(matchA.group(), '%m/%d/%Y %I:%M:%S %p'), matchB.group(),
+                             C, matchD.group()[12:], matchE.group()[9:-1], positionx, positiony])
+    column_names = ['Time', 'TagID', 'ResourceID', 'WhereportID', 'ZoneName', 'XPos', 'YPos']
+    return pd.DataFrame(pings, columns=column_names)
 
 
 def gps_location_events(path, archive, start, end, filters=['']):
@@ -181,8 +195,8 @@ if __name__ == '__main__':
     path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
-    start = datetime.datetime(2017, 1, 10, 0, 14, 59)
-    end = datetime.datetime(2017, 1, 10, 10, 20, 59)
+    start = datetime.datetime(2017, 1, 10, 8, 14, 59)
+    end = datetime.datetime(2017, 1, 10, 9, 20, 59)
 
     import time
     start_time = time.localtime()
@@ -192,8 +206,8 @@ if __name__ == '__main__':
     pd.set_option('display.width', desired_width)
 
 
-    a = whereport_pings(path, archive, start, end)
-    print(a)
+    a = whereport_pings(path, archive, start, end, filters=[''])
+    print_full(a)
 
     end_time = time.localtime()
     end_time = datetime.datetime(*end_time[:6])

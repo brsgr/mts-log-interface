@@ -1,8 +1,7 @@
 ## This example searches for whereport pings against truck numbered 163998 betwen 7:30 and 8:00 on 03292016
 
-import mtsloginterface as mts
 import datetime
-
+import mtsloginterface as mts
 
 path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
 archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'

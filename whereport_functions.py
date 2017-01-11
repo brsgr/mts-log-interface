@@ -3,6 +3,12 @@ import numpy as np
 import re
 
 
+def print_full(x):
+    pd.set_option('display.max_rows', len(x))
+    print(x)
+    pd.reset_option('display.max_rows')
+
+
 # Functions for extracting relevant information ising regex
 def return_tag_no(i):
     match = re.search(r'3\d\d\d\d\d\d\d', i)  # regex to find tag #
@@ -10,7 +16,6 @@ def return_tag_no(i):
         return match.group()
     except AttributeError:
         return np.NAN
-
 
 def return_tag_id(i):
     match = re.search(r'ResourceID=.+\|', i)  # regex to find tag id
@@ -28,11 +33,12 @@ def return_wp_id(i):
     except AttributeError:
         return np.NAN
 
-
 def return_zone_name(i):
     match = re.search(r'ZoneName.+?\|', i)  # Regex to find Zone name
-    return match.group()[9:-1]
-
+    try:
+        return match.group()[9:-1]
+    except AttributeError:
+        return np.NAN
 
 def return_x_coord(i):
     match = re.search(r'X.+?\|', i)  # regex to find X coord
@@ -40,7 +46,8 @@ def return_x_coord(i):
         position = int(match.group()[2:-1])
     except ValueError:
         position = match.group()[2:-1]
-    pass
+    except AttributeError:
+        return np.NAN
     return position
 
 
@@ -50,5 +57,6 @@ def return_y_coord(i):
         position = int(match.group()[2:-1])
     except ValueError:
         position = match.group()[2:-1]
-    pass
+    except AttributeError:
+        return np.NAN
     return position

@@ -1,8 +1,8 @@
-import mtsloginterface as mts
-from mts import mts_query
-import pandas as pd
 import pickle
-import numpy as np
+
+import pandas as pd
+
+from mts import mts_query
 
 # This script attempts to determine the average Y pos for a particualr row in order to calculate the miscalibration
 # present in RTG R8091. It does so by comparing R8091 to R8143, which worked in the same row on 12/28/2016

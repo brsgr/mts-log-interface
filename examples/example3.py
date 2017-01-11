@@ -1,7 +1,7 @@
 ## This script checks to see all RFID tag pings by tag number 33986660 between 0613 and 0814 on 03292016
 
-import mtsloginterface as mts
 import datetime
+import mtsloginterface as mts
 
 path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
 archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'

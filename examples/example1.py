@@ -1,9 +1,10 @@
 ## This example uses the whereport_ping log search function to try to determine why T6267 failed to transition to a
 ## truck at 3/29/2016 07:07:37. This outputs all whereport pings for T6267
 
-from mts import mts_query
-import mtsloginterface as mts
 import datetime
+import mtsloginterface as mts
+
+from mts import mts_query
 
 where_query = 'select * from whereports_by_wp'  # Database table storing whereport numbers
 whereportlist = mts_query(where_query)

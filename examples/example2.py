@@ -1,7 +1,7 @@
 ## This script checks to see all RFID tag pings by truck number 163998
 
-import mtsloginterface as mts
 import datetime
+import mtsloginterface as mts
 
 path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
 archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'

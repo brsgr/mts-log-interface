@@ -1,9 +1,8 @@
-import logging
-import re
-
-import time
 import datetime
+import logging
 import mtsloginterface as mts
+import re
+import time
 
 # This script executes every hour to determine if equipment has defective GPS components. It compares transition events
 # to transition events in which no GPS data is sent. The results are logged to a file in the script's root directory
