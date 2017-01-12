@@ -93,7 +93,7 @@ def whereport_pings(path, archive, start, end):
 
     file_names = MTSLogConnection(path, archive, 'FrontLoaderSvcLog', start, end).return_logs()
     # Establish MTS Connection to receive log list
-    # argument
+    # initialize empty data frame and loop through the found log files
     return_df = pd.DataFrame()
     for log_file in file_names:
         df = pd.read_csv(log_file, compression='gzip', encoding="Latin-1", header=None)
@@ -115,33 +115,28 @@ def whereport_pings(path, archive, start, end):
     return return_df
 
 
-def gps_location_events(path, archive, start, end, filters=['']):
-    # Create a list of all location events at path/archive between the times 'start' and 'end'
-    # output is in list[list] with format [datetime received, datetime sent, latency, CHE_id, [X_pos, Y_pos, compass]]
-    logitemlist = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).download_logs(filters)
+def gps_location_events(path, archive, start, end, heading=False):
+    # Create a df of all GPS location events for all CHE
     file_names = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).return_logs()
-    # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
-    # argument
-    locationlist = []
-    for i in logitemlist:
-        if 'msg=LocationEvent' in i:
-            matchA = re.search(r'\w*/\w*/\w\w\w\w \w\w:\w\w:\w\w \w\w', i)  # Regex to find time received
-            matchB = re.search(r't~\d\d\d\d\d\d\d\d\d\d', i)  # regex to find timestamp
-            A_Time = datetime.datetime.strptime(matchA.group(), '%m/%d/%Y %I:%M:%S %p')
-            B_Time = datetime.datetime.fromtimestamp(int(matchB.group()[2:]))
-            latency = (A_Time-B_Time).seconds  # Calculates latency in seconds
-            matchC = re.search(r'~\w\d\d\d\d~', i)  # regex for che_id
-            matchD = re.search(r'~~~\d*\.\d*', i)  # regex for X_pos
-            matchE = re.search(r'0~\d*\.\d*', i)  # regex for Y_pos
-            matchF = re.search(r'\d*~N', i)  # regex for head direction
+    # Establish MTS Connection and download the logs
+    # initialize empty data frame and loop through the found log files
+    return_df = pd.DataFrame()
+    for log_file in file_names:
+        df = pd.read_csv(log_file, compression='gzip', encoding="Latin-1", header=None, error_bad_lines=False)
+        df.columns = ['date', 'unixtime', 'blink', 'tag', 'info']
 
-            try:
-                locationlist.append([A_Time, B_Time, latency, matchC.group()[1:-1], float(matchD.group()[3:]),
-                                     float(matchE.group()[2:]), int(matchF.group()[:-2])])
-            except:
-                pass
-    column_names = ['Time Received', 'Time Sent', 'Latency', 'CHE ID', 'Xpos', 'Ypos', 'Compass']
-    return pd.DataFrame(locationlist, columns=column_names)
+        df['che_id'] = df['info'].apply(return_che_id_gps)
+        df['x_pos'] = df['info'].apply(return_x_coord_gps)
+        df['y_pos'] = df['info'].apply(return_y_coord_gps)
+        if heading is True:  # Heading is an optional column due to computation time
+            df['heading'] = df['info'].apply(return_head_gps)
+        df = df[df['blink'] == 'Receive']
+        df.drop('info', 1, inplace=True)
+        df.reset_index(drop=True, inplace=True)
+
+        return_df = return_df.append(df)
+
+    return return_df
 
 
 def rfid_tag_locations(path, archive, start, end, filters=['']):
@@ -182,7 +177,7 @@ if __name__ == '__main__':
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
     start = datetime.datetime(2017, 1, 10, 0, 14, 59)
-    end = datetime.datetime(2017, 1, 10, 10, 20, 59)
+    end = datetime.datetime(2017, 1, 10, 2, 20, 59)
 
     import time
     start_time = time.localtime()
@@ -192,7 +187,7 @@ if __name__ == '__main__':
     pd.set_option('display.width', desired_width)
 
 
-    a = whereport_pings(path, archive, start, end)
+    a = gps_location_events(path, archive, start, end)
     print(a)
 
     end_time = time.localtime()

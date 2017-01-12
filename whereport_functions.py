@@ -60,3 +60,68 @@ def return_y_coord(i):
     except AttributeError:
         return np.NAN
     return position
+
+
+def return_che_id_gps(i):
+    match = re.search(r'~\w\d\d\d\d~', i)  # regex for che_id
+    try:
+        return match.group()[1:-1]
+    except AttributeError:
+        return np.NAN
+
+
+def return_x_coord_gps(i):
+    """
+    Extracts X coordinates for RTGs, FELs, and UTRs. Conditonals are requireds since they are stored differently
+    Note that UTR positioning is in lat/long whereas the other CHE are in x/y
+    """
+    if 'LocationEvent' in i:  # if it is RTG/FEL
+        match = re.search(r'~~~\d*\.\d*', i)  # regex to find X coord
+        try:  # Avoid attribute error if regex finds nothing
+            position = float(match.group()[3:])
+        except AttributeError:
+            return np.NAN
+        return position
+    elif 'TTEvent' in i:  # If it is UTR
+        match = re.search(r'Locate~\d*\.\d*', i)  # regex to find X coord
+        try:  # Avoid attribute error if regex finds nothing
+            position = float(match.group()[7:])
+        except AttributeError:
+            return np.NAN
+        return position
+    else:
+        return np.NAN
+
+
+def return_y_coord_gps(i):
+    """
+    Extracts Y coordinates for RTGs, FELs, and UTRs. Conditonals are requireds since they are stored differently
+    Note that UTR positioning is in lat/long whereas the other CHE are in x/y
+    """
+    if 'LocationEvent' in i:
+        match = re.search(r'0~\d*\.\d*', i) # regex to find Y coord
+        try:  # Avoid attribute error if regex finds nothing
+            position = float(match.group()[2:])
+        except AttributeError:
+            return np.NAN
+        return position
+    elif 'TTEvent' in i:
+        match = re.search(r'~-\d*\.\d*', i)  # regex to find X coord
+        try:  # Avoid attribute error if regex finds nothing
+            position = float(match.group()[1:])
+        except AttributeError:
+            return np.NAN
+        return position
+    else:
+        return np.NAN
+
+
+def return_head_gps(i):
+    match = re.search(r'\d*\.?\d*~N', i)  # regex for head direction
+    try:  # Avoid attribute error if regex finds nothing
+        position = float(match.group()[:-2])
+    except AttributeError:
+        return np.NAN
+    except ValueError:
+        return np.NAN
+    return position
