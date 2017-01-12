@@ -9,8 +9,11 @@ def print_full(x):
     pd.reset_option('display.max_rows')
 
 
-# Functions for extracting relevant information ising regex
+# Functions for extracting relevant information using regex
 def return_tag_no(i):
+    """
+    Finds the tag# for whereport blinks
+    """
     match = re.search(r'3\d\d\d\d\d\d\d', i)  # regex to find tag #
     try:
         return match.group()
@@ -18,6 +21,9 @@ def return_tag_no(i):
         return np.NAN
 
 def return_tag_id(i):
+    """
+    Finds the tag id # for whereport blinks
+    """
     match = re.search(r'ResourceID=.+\|', i)  # regex to find tag id
     try:  # Avoid Attribute error if no ResourceID is found
         C = match.group()[11:-1]
@@ -27,6 +33,9 @@ def return_tag_id(i):
 
 
 def return_wp_id(i):
+    """
+    Finds the whereport id # for whereport blinks
+    """
     match = re.search(r'WherePortID=\d\d\d\d', i)  # regex to find whereport id
     try:
         return match.group()[12:]
@@ -34,6 +43,9 @@ def return_wp_id(i):
         return np.NAN
 
 def return_zone_name(i):
+    """
+    Finds the yard block a given tag ping occured in
+    """
     match = re.search(r'ZoneName.+?\|', i)  # Regex to find Zone name
     try:
         return match.group()[9:-1]
@@ -41,6 +53,9 @@ def return_zone_name(i):
         return np.NAN
 
 def return_x_coord(i):
+    """
+    X coordinate for whereport tag blink
+    """
     match = re.search(r'X.+?\|', i)  # regex to find X coord
     try:  # Avoid Value error if regex does not return an integer
         position = int(match.group()[2:-1])
@@ -52,6 +67,9 @@ def return_x_coord(i):
 
 
 def return_y_coord(i):
+    """
+    Y coordinate for whereport tag blink
+    """
     match = re.search(r'Y.+?\|', i)  # regex to find Y coord
     try:  # Avoid Value error if regex does not return an integer
         position = int(match.group()[2:-1])
@@ -61,8 +79,11 @@ def return_y_coord(i):
         return np.NAN
     return position
 
-
+#### Regex functions for GPS position events
 def return_che_id_gps(i):
+    """
+    CHE_id for GPS location events
+    """
     match = re.search(r'~\w\d\d\d\d~', i)  # regex for che_id
     try:
         return match.group()[1:-1]
@@ -117,6 +138,9 @@ def return_y_coord_gps(i):
 
 
 def return_head_gps(i):
+    """
+    Directional for GPS location events
+    """
     match = re.search(r'\d*\.?\d*~N', i)  # regex for head direction
     try:  # Avoid attribute error if regex finds nothing
         position = float(match.group()[:-2])
