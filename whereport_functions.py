@@ -149,3 +149,73 @@ def return_head_gps(i):
     except ValueError:
         return np.NAN
     return position
+
+
+def return_tag_no_rfid(i):
+    """
+    returns tag # for rfid location events
+    """
+    match = re.search(r'TagID=\d*', i)  # regex to find tag #
+    try:
+        return match.group()[6:]
+    except AttributeError:
+        return np.NAN
+
+
+def return_resource_type_rfid(i):
+    """
+    returns resource type for rfid location events
+    """
+    match = re.search(r'ResourceType=.+?\|', i)
+    try:
+        return match.group()[13:-1]
+    except AttributeError:
+        return np.NAN
+
+
+def return_che_id_rfid(i):
+    """
+    returns CHE id # for rfid location events
+    """
+    match = re.search(r'ResourceID=[^|].+?[-|]', i)
+    try:
+        return match.group()[11:-1]
+    except AttributeError:
+        return np.NAN
+
+
+def return_zone_name_rfid(i):
+    """
+    returns zone name for rfid location events
+    """
+    match = re.search(r'ZoneName.+?\|', i)
+    try:
+        return match.group()[9:-1]
+    except AttributeError:
+        return np.NAN
+
+
+def return_x_coord_rfid(i):
+    """
+    returns X coordinate for rfid location events
+    """
+    match = re.search(r'X.+?\|', i)  # regex to find X coord
+    try:
+        return int(match.group()[2:-1])
+    except AttributeError:
+        return np.NAN
+    except ValueError:
+        return match.group()[2:-1]
+
+
+def return_y_coord_rfid(i):
+    """
+    returns Y coordinate for rfid location events
+    """
+    match = re.search(r'Y.+?\|', i)  # regex to find Y coord
+    try:
+        return int(match.group()[2:-1])
+    except AttributeError:
+        return np.NAN
+    except ValueError:
+        return match.group()[2:-1]

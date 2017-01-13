@@ -140,36 +140,29 @@ def gps_location_events(path, archive, start, end, heading=False):
     return return_df
 
 
-def rfid_tag_locations(path, archive, start, end, filters=['']):
-    # Creates a list of all RFID tag blinks. This includes DRAYMAN, FEL, RTGS, and UTR. Don't confuse this with location
-    # events which only includes GPS positions, not RFID positions
-    logitemlist = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).download_logs(filters)
+def rfid_tag_locations(path, archive, start, end):
+    # Create a df of all GPS location events for all CHE
     file_names = MTSLogConnection(path, archive, 'MTSTelemISvcLog', start, end).return_logs()
-    # Establish MTS Connection and download the logs, note that the download_logs method includes the optional filters
-    # argument
-    blink_list = []  # Initialize list of RFID blinks
-    for i in logitemlist:
-        if any(j in i for j in ['Algorithm=3', 'Algorithm=2', 'Algorithm=1']):
-            matchA = re.search(r'\w*/\w*/\w\w\w\w \w\w:\w\w:\w\w \w\w', i)  # Regex to find time received
-            A_Time = datetime.datetime.strptime(matchA.group(), '%m/%d/%Y %I:%M:%S %p')
-            matchB = re.search(r'TagID=\d*', i)  # regex to find tag #
-            matchC = re.search(r'ResourceType=.+?\|', i)
-            matchD = re.search(r'ResourceID=.+?[-|]', i)
-            matchE = re.search(r'ZoneName.+?\|', i)  # Regex to find Zone name
-            matchF = re.search(r'X.+?\|', i)  # regex to find X coord
-            matchG = re.search(r'Y.+?\|', i)  # regex to find Y coord
-            #  Use MatchF and MatchG to create integer coordinates
-            try:
-                positionx = int(matchF.group()[2:-1])
-                positiony = int(matchG.group()[2:-1])
-            except ValueError:
-                positionx = matchF.group()[2:-1]
-                positiony = matchG.group()[2:-1]
+    # Establish MTS Connection and download the logs
+    # initialize empty data frame and loop through the found log files
+    return_df = pd.DataFrame()
+    for log_file in file_names:
+        df = pd.read_csv(log_file, compression='gzip', encoding="Latin-1", header=None, error_bad_lines=False)
+        df.columns = ['date', 'unixtime', 'blink', 'tag', 'info']
+        df = df[df['info'].str.contains('Algorithm=3|Algorithm=2|Algorithm=1')]
 
-            blink_list.append([A_Time, matchB.group()[6:], matchC.group()[13:-1], matchD.group()[11:-1]
-                               , matchE.group()[9:-1], positionx, positiony])
-    column_names = ['Time', 'TagID', 'Tag_Type', 'ResourceID', 'ZoneName', 'Xpos', 'Ypos']
-    return pd.DataFrame(blink_list, columns=column_names)
+        df['tag_id'] = df['info'].apply(return_tag_no_rfid)
+        df['che_id'] = df['info'].apply(return_che_id_rfid)
+        df['resource_type'] = df['info'].apply(return_resource_type_rfid)
+        df['zone_name'] = df['info'].apply(return_zone_name_rfid)
+        df['x_pos'] = df['info'].apply(return_x_coord_rfid)
+        df['y_pos'] = df['info'].apply(return_y_coord_rfid)
+
+        df.drop('info', 1, inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        return_df = return_df.append(df)
+
+    return return_df
 
 
 
@@ -177,8 +170,8 @@ if __name__ == '__main__':
     path = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log'
     archive = 'Z:\\inetpub\\ftproot\\WhereNet\\Server\\Log\\Archive'
     type = 'MTSTelemISvcLog'
-    start = datetime.datetime(2017, 1, 10, 0, 14, 59)
-    end = datetime.datetime(2017, 1, 10, 2, 20, 59)
+    start = datetime.datetime(2017, 1, 13, 10, 14, 59)
+    end = datetime.datetime(2017, 1, 13, 10, 20, 59)
 
     import time
     start_time = time.localtime()
@@ -188,8 +181,8 @@ if __name__ == '__main__':
     pd.set_option('display.width', desired_width)
 
 
-    a = gps_location_events(path, archive, start, end)
-    print(a.tail())
+    a = rfid_tag_locations(path, archive, start, end)
+    print_full(a)
 
     end_time = time.localtime()
     end_time = datetime.datetime(*end_time[:6])
