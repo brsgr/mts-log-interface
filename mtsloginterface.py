@@ -124,13 +124,14 @@ def gps_location_events(path, archive, start, end, heading=False):
     for log_file in file_names:
         df = pd.read_csv(log_file, compression='gzip', encoding="Latin-1", header=None, error_bad_lines=False)
         df.columns = ['date', 'unixtime', 'blink', 'tag', 'info']
+        df = df[df['blink'] == 'Receive']
 
         df['che_id'] = df['info'].apply(return_che_id_gps)
         df['x_pos'] = df['info'].apply(return_x_coord_gps)
         df['y_pos'] = df['info'].apply(return_y_coord_gps)
         if heading is True:  # Heading is an optional column due to computation time
             df['heading'] = df['info'].apply(return_head_gps)
-        df = df[df['blink'] == 'Receive']
+
         df.drop('info', 1, inplace=True)
         df.reset_index(drop=True, inplace=True)
 
@@ -188,7 +189,7 @@ if __name__ == '__main__':
 
 
     a = gps_location_events(path, archive, start, end)
-    print(a)
+    print(a.tail())
 
     end_time = time.localtime()
     end_time = datetime.datetime(*end_time[:6])
